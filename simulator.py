@@ -199,6 +199,39 @@ class PaintTank:
         # return outgoing paint mixture
         return out
 
+class MixingBassin(PaintTank):
+    MAX_MOTOR_SPEED = 100 #arbitrary max speed for the motors of the mixing bassin, in rounds per minute
+
+    def __init__(self, name, volume, outflow_rate):
+        super().__init__(name, volume, outflow_rate, PaintMixture(), None)
+        self.lm_ratio = 0
+        self.rm_ratio = 0
+    
+    def set_lm_speed(self, ratio):
+        """
+        set the speed of the left motor
+        range: 0.0 (fully stopped) - 1.0 (max speed as defined by MixingBassin.MAX_MOTOR_SPEED)
+        """
+        self.lm_ratio = ratio
+    
+    def set_rm_speed(self, ratio):
+        """
+        set the speed of the right motor
+        range: 0.0 (fully stopped) - 1.0 (max speed as defined by MixingBassin.MAX_MOTOR_SPEED)
+        """
+        self.rm_ratio = ratio
+    
+    def get_lm_speed(self):
+        """
+        get the speed of the left motor, in % of the max speed as defined by MixingBassin.MAX_MOTOR_SPEED
+        """
+        return self.lm_ratio
+
+    def get_rm_speed(self):
+        """
+        get the speed of the right motor, in % of the max speed as defined by MixingBassin.MAX_MOTOR_SPEED
+        """
+        return self.rm_ratio
 
 class Simulator(Thread):
     """
@@ -211,7 +244,7 @@ class Simulator(Thread):
         self.sim_time = 0
 
         # set up the mixing tank, initially empty
-        self.mixer = PaintTank("mixer", BASIN_VOLUME, BASIN_OUTFLOW, PaintMixture())
+        self.mixer = MixingBassin("mixer", BASIN_VOLUME, BASIN_OUTFLOW)
 
         # set up the paint storage tanks and connect them to the mixing tank
         self.tanks = [
@@ -234,6 +267,12 @@ class Simulator(Thread):
         Returns None if not found.
         """
         return next((tank for tank in self.tanks if tank.name == name), None)
+
+    def get_mixer(self):
+        """
+        Helper method to get a reference to the PaintTank instance of the mixer.
+        """
+        return self.mixer
 
     def simulate(self, interval: float):
         """
