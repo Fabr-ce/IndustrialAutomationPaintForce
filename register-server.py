@@ -24,6 +24,6 @@ for device_name in ["cyan", "magenta", "yellow", "black", "white", "mixer"]:
     # define the instance name for the device server
     device_info.server = "PaintMixingStation/%s" % args.station_name
     # define the device name
-    device_info.name = "epfl/station1/%s" % device_name
+    device_info.name = "epfl/%s/%s" % (args.station_name, device_name)
     db.add_device(device_info)
     print("Added device: %s\tinstance: %s\tclass: %s" % (device_info.name, device_info.server, device_info._class))

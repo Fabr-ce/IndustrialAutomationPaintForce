@@ -2,6 +2,7 @@ from simulator import Simulator
 
 from tango import AttrWriteType
 from tango.server import Device, attribute, command, run
+from constants import *
 
 
 class PaintTank(Device):
@@ -66,18 +67,32 @@ class PaintTank(Device):
         """
         see whether VHS is activated
         """
-        return self.level() < 0.95
+        return self.level() < VHS_LEVEL
     
     @attribute(dtype=bool)
     def HS(self):
         """
         see whether HS is activated
         """
-        return self.level() < 0.8
+        return self.level() < HS_LEVEL
     
-class ColorTank(PaintTank):
+    @attribute(dtype=bool)
+    def LS(self):
+        """
+        see whether LS is activated
+        """
+        return self.level() > LS_LEVEL
+    
+    @attribute(dtype=bool)
+    def VLS(self):
+        """
+        see whether VLS is activated
+        """
+        return self.level() > VSL_LEVEL
+    
+
     @command(dtype_out=float)
-    def Fill(self):
+    def fill(self):
         """
         command to fill up the tank with paint
         """
@@ -93,42 +108,7 @@ class ColorTank(PaintTank):
         """
         return self.tank.get_color_rgb()  # grey
     
-    @attribute(dtype=bool)
-    def LS(self):
-        """
-        see whether LS is activated
-        """
-        return self.level() > 0.15
-    
-    @attribute(dtype=bool)
-    def VLS(self):
-        """
-        see whether VLS is activated
-        """
-        return self.level() > 0.05
-
-class MixingBassin(PaintTank):
-    """
-    Tango device server implementation representing a mixing basin
-    """
-    def init_device(self):
-        super().init_device()
-        print("Initializing class %s for device %s" % (self.__class__.__name__, self.get_name()))
-        # get a reference to the simulated tank of the mixing bassin
-        self.mixer = simulator.get_mixer()
-        if not self.mixer:
-            raise Exception(
-                "Error: Can't find matching mixer in the simulator with given name = %s" % self.get_name())
-    
-    @attribute(dtype=bool)
-    def CS(self):
-        """
-        get the current color in the mixing bassin according to the color sensor
-        returns None if the motors are not spining (undefined color)
-        #TODO not sure this is the best criterion…
-        """
-        if self.get_LM() > 0 or self.get_RM() > 0:
-            return self.mixer.get_color_rgb()
+  
     
     LM = attribute(label="LM", dtype=float, #represents the speed of the motor (as a % of the max speed)
                    access=AttrWriteType.READ_WRITE,
@@ -161,6 +141,9 @@ class MixingBassin(PaintTank):
         set the current speed of the right motor (as % of the max motor speed)
         """
         self.mixer.set_rm_speed(ratio)
+    
+
+   
 
 if __name__ == "__main__":
     # start the simulator as a background thread

@@ -4,8 +4,10 @@ import signal
 
 from PyQt5.QtWidgets import QApplication, QWidget, QSlider, QHBoxLayout, QVBoxLayout, QLabel, QMainWindow, QPushButton
 from PyQt5.QtCore import Qt, QThread, QRunnable, pyqtSlot, QThreadPool, QObject, pyqtSignal, QRect
-from PyQt5.QtGui import QPainter, QColor, QPen
+from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
 from tango import AttributeProxy, DeviceProxy
+
+from constants import *
 
 # prefix for all Tango device names
 TANGO_NAME_PREFIX = "epfl/station1"
@@ -15,6 +17,11 @@ TANGO_ATTRIBUTE_LEVEL = "level"
 TANGO_ATTRIBUTE_VALVE = "valve"
 TANGO_ATTRIBUTE_FLOW = "flow"
 TANGO_ATTRIBUTE_COLOR = "color"
+TANGO_ATTRIBUTE_VHS = "VHS"
+TANGO_ATTRIBUTE_HS = "HS"
+TANGO_ATTRIBUTE_LS = "LS"
+TANGO_ATTRIBUTE_VLS = "VLS"
+
 TANGO_COMMAND_FILL = "Fill"
 TANGO_COMMAND_FLUSH = "Flush"
 
@@ -69,22 +76,39 @@ class TankWidget(QWidget):
         painter.drawRect(2, 2 + int((1.0 - self.fill_level) * (self.height() - self.MARGIN_BOTTOM - 4)),
                          self.width() - 4,
                          int(self.fill_level * (self.height() - self.MARGIN_BOTTOM - 4)))
+        
+
+        # draw low and high sensor lines
+        bottomStart = self.height() - self.MARGIN_BOTTOM
+        lineHeights = [(VHS_LEVEL, 2), (HS_LEVEL, 1), (LS_LEVEL, 1), (VSL_LEVEL, 2)]
+        for relHeight, lineWidth in lineHeights:
+            painter.setPen(QPen(Qt.black, lineWidth, Qt.DotLine))
+            height = int(bottomStart - bottomStart * relHeight)
+            painter.drawLine(0, height, self.width()-2,height)
+
+     
+
         # draw valve symobl
-        painter.setPen(QPen(Qt.black, 2, Qt.SolidLine))
+
+        painter.setPen(Qt.black)
+        if(self.flow > 0):
+            painter.setBrush(QColor(200, 200, 200, 255))
+        else:
+            painter.setBrush(Qt.black)
+
         painter.drawLine(self.width() // 2, self.height() - self.MARGIN_BOTTOM, self.width() // 2,
                          self.height() - self.MARGIN_BOTTOM + 5)
         painter.drawLine(self.width() // 2, self.height(), self.width() // 2,
                          self.height() - 5)
-        painter.drawLine(self.width() // 2 - self.VALVE_WIDTH, self.height() - self.MARGIN_BOTTOM + 5,
-                         self.width() // 2 + self.VALVE_WIDTH,
-                         self.height() - 5)
-        painter.drawLine(self.width() // 2 - self.VALVE_WIDTH, self.height() - 5, self.width() // 2 + self.VALVE_WIDTH,
-                         self.height() - self.MARGIN_BOTTOM + 5)
-        painter.drawLine(self.width() // 2 - self.VALVE_WIDTH, self.height() - self.MARGIN_BOTTOM + 5,
-                         self.width() // 2 + self.VALVE_WIDTH,
-                         self.height() - self.MARGIN_BOTTOM + 5)
-        painter.drawLine(self.width() // 2 - self.VALVE_WIDTH, self.height() - 5, self.width() // 2 + self.VALVE_WIDTH,
-                         self.height() - 5)
+        valvePath = QPainterPath()
+        valvePath.moveTo(self.width() // 2 - self.VALVE_WIDTH, self.height() - self.MARGIN_BOTTOM + 5)
+        valvePath.lineTo(self.width() // 2 + self.VALVE_WIDTH, self.height() - 5)
+        valvePath.lineTo(self.width() // 2 - self.VALVE_WIDTH, self.height() - 5)
+        valvePath.lineTo(self.width() // 2 + self.VALVE_WIDTH, self.height() - self.MARGIN_BOTTOM + 5)
+        valvePath.closeSubpath()
+        painter.drawPath(valvePath)
+
+
         # draw labels
         painter.drawText(
             QRect(0, self.height() - self.MARGIN_BOTTOM, self.width() // 2 - self.VALVE_WIDTH, self.MARGIN_BOTTOM),
